@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление сметами</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: whitesmoke;
+        }
+        header {
+            width: 950px;
+            color: whitesmoke;
+            padding: 10px 20px;
+            text-align: right;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .logo {
+            position: absolute;
+            top: 20px;
+            left: 10px;
+            width: 200px;
+            height: auto;
+        }
+        main {
+            padding: 20px;
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        .green-line {
+            width: 100%;
+            height: 4px;
+            background-color: #A5D732;
+            margin: 0;
+            position: relative;
+            margin-top: 20px;
+        }
+        .table-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .table-links a {
+            text-decoration: none;
+            color: #fff;
+            background: #A5D732;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .table-links a:hover {
+            background: #8ca72f;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #A5D732;
+            color: white;
+        }
+        td button {
+            background-color: #dc3545;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        td button:hover {
+            background-color: #c82333;
+        }
+        .custom-button {
+            width: auto;
+            border-radius: 10px;
+            padding: 7px 15px;
+            text-align: center;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-custom-apply {
+            background-color: #A5D732;
+            color: white;
+            border: none;
+        }
+        .btn-custom-edit {
+            background-color: #D6DBD4;
+            color: black;
+            border: none;
+        }
+
+        .btn-custom-edit:hover {
+            background-color: #D6DBD4;
+            color: white;
+        }
+        .info-box {
+            padding: 15px;
+            background: #e9ecef;
+            border-left: 5px solid #A5D732;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <img src="/icons/compIcon.png" alt="Логотип" class="logo">
+    <h1>Управление сметами</h1>
+</header>
+<div class="green-line"></div>
+<main>
+    <div class="table-links">
+        <button type="button" class="custom-button btn-custom-apply" onclick="openModal()">Добавить смету</button>
+    </div>
+    <!-- Уведомление об удалении -->
+    <div class="container mt-3">
+        <div th:if="${message}" class="alert alert-success">
+            <span th:text="${message}"></span>
+        </div>
+        <div th:if="${error}" class="alert alert-danger">
+            <span th:text="${error}"></span>
+        </div>
+    </div>
+    <!-- Форма для фильтрации -->
+    <form th:action="@{/project_manager/estimate}" method="get" class="mb-4">
+        <div class="row mb-3">
+            <div class="col-md-8">
+                <label for="keyword">Поиск по ключевому слову:</label>
+                <input type="text" class="form-control" id="keyword" name="keyword" placeholder="Введите ключевое слово для фильтрации">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="custom-button btn-custom-apply">Применить фильтр</button>
+            </div>
+        </div>
+    </form>
+    <!-- Сортировка -->
+    <form th:action="@{/project_manager/estimate}" method="get" class="mb-4">
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label for="sort">Сортировать по:</label>
+                <select name="sort" id="sort" class="form-select">
+                    <option value="recordDate" th:selected="${'recordDate' == sort}">Дата записи</option>
+                    <option value="expenseItem" th:selected="${'expenseItem' == sort}">Статья расхода</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="order">Порядок:</label>
+                <select name="order" id="order" class="form-select">
+                    <option value="asc" th:selected="${'asc' == order}">По возрастанию</option>
+                    <option value="desc" th:selected="${'desc' == order}">По убыванию</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="custom-button btn-custom-apply">Применить сортировку</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Таблица смет -->
+    <table id="estimateTable">
+        <thead>
+        <tr>
+            <th data-column="id" data-type="number">ID</th>
+            <th data-column="project" data-type="string">Проект</th>
+            <th data-column="expenseItem" data-type="string">Статья расхода</th>
+            <th data-column="unitsMeasurement" data-type="string">Единица измерения</th>
+            <th data-column="amount" data-type="number">Количество</th>
+            <th data-column="price" data-type="number">Цена</th>
+            <th data-column="recordDate" data-type="date">Дата записи</th>
+            <th scope="col">Удалить</th>
+            <th scope="col">Редактировать</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="estimate: ${listEstimates}">
+            <td th:text="${estimate.ID}"></td>
+            <td th:text="${estimate.IDProject.ID} + ': '+ ${estimate.IDProject.name} + ''"></td>
+            <td th:text="${estimate.expenseItem}"></td>
+            <td th:text="${estimate.unitsMeasurement}"></td>
+            <td th:text="${estimate.amount}"></td>
+            <td th:text="${estimate.price}"></td>
+            <td th:text="${estimate.recordDate}"></td>
+            <td>
+                <form th:action="@{/project_manager/delete_estimate/{id}(id=${estimate.ID})}" method="post">
+                    <input type="hidden" name="_method" value="delete"/>
+                    <button type="submit" class="btn btn-custom-delete">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </td>
+            <td>
+                <form th:action="@{/project_manager/edit_estimate/{id}(id=${estimate.ID})}" th:object="${estimate}" method="post">
+                    <button type="button" class="btn-custom-edit" data-bs-toggle="modal" data-bs-target="#editModal"
+                            th:data-id="${estimate.ID}"
+                            th:data-project-id="${estimate.IDProject.name}"
+                            th:data-expenseItem="${estimate.expenseItem}"
+                            th:data-unitsMeasurement="${estimate.unitsMeasurement}"
+                            th:data-amount="${estimate.amount}"
+                            th:data-price="${estimate.price}"
+                            th:data-recordDate="${estimate.recordDate}"
+                            onclick="openEditModal(this)">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Модальное окно для добавления -->
+    <div class="modal fade" id="addEstimateModal" tabindex="-1" aria-labelledby="addEstimateModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addEstimateModalLabel">Добавление сметы</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addEstimateForm" action="/project_manager/new_estimate" method="post">
+                        <div class="mb-3">
+                            <label for="IDProject" class="form-label">Код проекта</label>
+                            <input type="number" class="form-control" id="IDProject" name="IDProject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="expenseItem" class="form-label">Статья расхода</label>
+                            <input type="text" class="form-control" id="expenseItem" name="expenseItem" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="unitsMeasurement" class="form-label">Единица измерения</label>
+                            <input type="text" class="form-control" id="unitsMeasurement" name="unitsMeasurement" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Количество</label>
+                            <input type="number" class="form-control" id="amount" name="amount" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="price" class="form-label">Цена</label>
+                            <input type="number" class="form-control" id="price" name="price" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="recordDate" class="form-label">Дата записи</label>
+                            <input type="date" class="form-control" id="recordDate" name="recordDate" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Добавить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для редактирования -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">Редактирование сметы</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editForm" method="post" action="/project_manager/edit_estimate/{id}">
+                        <input type="hidden" name="_method" value="post">
+                        <input type="hidden" id="id" name="id">
+                        <div class="mb-3">
+                            <label for="IDProject_edit" class="form-label">Код проекта</label>
+                            <input type="number" class="form-control" id="IDProject_edit" name="IDProject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="expenseItem_edit" class="form-label">Статья расхода</label>
+                            <input type="text" class="form-control" id="expenseItem_edit" name="expenseItem" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="unitsMeasurement_edit" class="form-label">Единица измерения</label>
+                            <input type="text" class="form-control" id="unitsMeasurement_edit" name="unitsMeasurement" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="amount_edit" class="form-label">Количество</label>
+                            <input type="number" class="form-control" id="amount_edit" name="amount" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="price_edit" class="form-label">Цена</label>
+                            <input type="number" class="form-control" id="price_edit" name="price" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="recordDate_edit" class="form-label">Дата записи</label>
+                            <input type="date" class="form-control" id="recordDate_edit" name="recordDate" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-box">
+        <h5>Контакты техподдержки:</h5>
+        <p>Если у вас возникли вопросы или проблемы, свяжитесь с нами:</p>
+        <p>Email: <a href="mailto:support@example.com">support@example.com</a></p>
+        <p>Телефон: +7 123 456 78 90</p>
+    </div>
+</main>
+</body>
+
+<script>
+    function openEditModal(button) {
+        const estimateId = button.getAttribute('data-id');
+        const project = button.getAttribute('data-project-id');
+        const expenseItem = button.getAttribute('data-expenseItem');
+        const unitsMeasurement = button.getAttribute('data-unitsMeasurement');
+        const amount = button.getAttribute('data-amount');
+        const price = button.getAttribute('data-price');
+        const recordDate = button.getAttribute('data-recordDate');
+
+        document.getElementById('IDProject_edit').value = project;
+        document.getElementById('expenseItem_edit').value = expenseItem;
+        document.getElementById('unitsMeasurement_edit').value = unitsMeasurement;
+        document.getElementById('amount_edit').value = amount;
+        document.getElementById('price_edit').value = price;
+        document.getElementById('recordDate_edit').value = recordDate;
+
+        const form = document.getElementById('editForm');
+        form.setAttribute('action', `/project_manager/edit_estimate/${estimateId}`);
+    }
+
+    function openModal() {
+        var modal = new bootstrap.Modal(document.getElementById('addEstimateModal'));
+        modal.show();
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        const alert = document.querySelector('.alert');
+        if (alert) {
+            setTimeout(() => alert.style.display = 'none', 5000);
+        }
+    });
+</script>
+</html>

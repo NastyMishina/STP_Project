@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Панель планировщика работ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: whitesmoke
+        }
+        header {
+            width: 950px;
+            color: whitesmoke;
+            padding: 10px 20px;
+            text-align: right;
+            margin-bottom: 13px;
+        }
+        .logo {
+            position: absolute;
+            top: 20px;
+            left: 10px;
+            width: 200px;
+            height: auto;
+        }
+        main {
+            padding: 20px;
+        }
+        .selection {
+            margin-bottom: 20px;
+        }
+        .table-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .table-links button {
+            text-decoration: none;
+            color: #fff;
+            background: #A5D732;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .table-links button:hover {
+            background: #A5D732;
+        }
+        .info-box {
+            padding: 15px;
+            background: #e9ecef;
+            border-left: 5px solid #A5D732;
+            margin-bottom: 20px;
+        }
+        .info-box strong {
+            display: block;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+        footer {
+            text-align: center;
+            padding: 10px;
+            background: #A5D732;
+            color: white;
+        }
+        .green-line {
+            width: 100%;
+            height: 4px;
+            background-color: #A5D732;
+            margin: 0;
+        }
+        footer {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(to right, rgba(165, 215, 50, 1), rgba(207, 216, 220, 1));
+            color: white;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+        }
+        canvas {
+            margin: 20px auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <img src="/icons/compIcon.png" alt="Логотип" class="logo">
+    <h1>Панель планировщика графика работ</h1>
+</header>
+<div class="green-line"></div>
+<main>
+    <div class="selection">
+        <h3>Выберите таблицу для работы:</h3>
+        <div class="table-links">
+            <button onclick="window.location.href='/scheduler/employee'">Сотрудники</button>
+            <button onclick="window.location.href='/scheduler/project'">Проекты</button>
+            <button onclick="window.location.href='/scheduler/work_schedule'">Графики работ</button>
+        </div>
+    </div>
+    <div class="info-box">
+        <h3>Статистика по проектам</h3>
+        <div class="statistics-container">
+            <p>Общее количество проектов: <span th:text="${totalProjects}"></span></p>
+            <div class="stat-card">
+                <h4>Актуальные проекты</h4>
+                <p>Количество: <span th:text="${activeProjectsCount}"></span></p>
+            </div>
+
+            <div class="stat-card">
+                <h4>Завершенные проекты</h4>
+                <p>Количество: <span th:text="${completedProjectsCount}"></span></p>
+            </div>
+        </div>
+    </div>
+    <canvas id="workScheduleChart" width="800" height="400"></canvas>
+    <script th:inline="javascript">
+        const taskCounts = /*[[${taskCounts}]]*/ {};
+        console.log('Task Counts:', taskCounts);
+
+        const projects = Object.keys(taskCounts);
+        const statuses = [...new Set(projects.flatMap(project => Object.keys(taskCounts[project])))];
+
+        const statusColors = {
+            "Запланировано": "#C0C0C0",
+            "В процессе": "#A5D732",
+            "Завершено": "#CCFF99"};
+
+        const datasets = statuses.map(status => ({
+            label: status,
+            data: projects.map(project => taskCounts[project][status] || 0),
+            backgroundColor: statusColors[status],
+            borderColor: `hsl(${Math.random() * 360}, 70%, 50%)`,
+            borderWidth: 1
+        }));
+
+        const ctx = document.getElementById('workScheduleChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: projects,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Статусы задач по проектам'
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+</main>
+</body>
+</html>

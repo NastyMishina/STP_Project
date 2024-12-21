@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление графиками работ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: whitesmoke;
+        }
+        header {
+            width: 950px;
+            color: whitesmoke;
+            padding: 10px 20px;
+            text-align: right;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .logo {
+            position: absolute;
+            top: 20px;
+            left: 10px;
+            width: 200px;
+            height: auto;
+        }
+        main {
+            padding: 20px;
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        .green-line {
+            width: 100%;
+            height: 4px;
+            background-color: #A5D732;
+            margin: 0;
+            position: relative;
+            margin-top: 20px;
+        }
+        .table-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .table-links a {
+            text-decoration: none;
+            color: #fff;
+            background: #A5D732;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .table-links a:hover {
+            background: #8ca72f;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #A5D732;
+            color: white;
+        }
+        td button {
+            background-color: #dc3545;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        td button:hover {
+            background-color: #c82333;
+        }
+        .custom-button {
+            width: auto;
+            border-radius: 10px;
+            padding: 7px 15px;
+            text-align: center;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-custom-apply {
+            background-color: #A5D732;
+            color: white;
+            border: none;
+        }
+        .btn-custom-edit {
+            background-color: #D6DBD4;
+            color: black;
+            border: none;
+        }
+
+        .btn-custom-edit:hover {
+            background-color: #D6DBD4;
+            color: white;
+        }
+        .info-box {
+            padding: 15px;
+            background: #e9ecef;
+            border-left: 5px solid #A5D732;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <img src="/icons/compIcon.png" alt="Логотип" class="logo">
+    <h1>Управление рабочим графиком</h1>
+</header>
+<div class="green-line"></div>
+<main>
+    <div class="table-links">
+        <button type="button" class="custom-button btn-custom-apply" onclick="openModal()">Добавить запись</button>
+    </div>
+    <!-- Уведомление об удалении -->
+    <div class="container mt-3">
+        <div th:if="${message}" class="alert alert-success">
+            <span th:text="${message}"></span>
+        </div>
+        <div th:if="${error}" class="alert alert-danger">
+            <span th:text="${error}"></span>
+        </div>
+    </div>
+    <!-- Форма для фильтрации -->
+    <form th:action="@{/project_manager/work_schedule}" method="get" class="mb-4">
+        <div class="row mb-3">
+            <div class="col-md-8">
+                <label for="keyword">Поиск по ключевому слову:</label>
+                <input type="text" class="form-control" id="keyword" name="keyword" placeholder="Введите ключевое слово для фильтрации">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="custom-button btn-custom-apply">Применить фильтр</button>
+            </div>
+        </div>
+    </form>
+    <!-- Сортировка -->
+    <form th:action="@{/project_manager/work_schedule}" method="get" class="mb-4">
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label for="sort">Сортировать по:</label>
+                <select name="sort" id="sort" class="form-select">
+                    <option value="startDate" th:selected="${'startDate' == sort}">Дата начала</option>
+                    <option value="endDate" th:selected="${'endDate' == sort}">Дата окончания</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="order">Порядок:</label>
+                <select name="order" id="order" class="form-select">
+                    <option value="asc" th:selected="${'asc' == order}">По возрастанию</option>
+                    <option value="desc" th:selected="${'desc' == order}">По убыванию</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="custom-button btn-custom-apply">Применить сортировку</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Таблица рабочих графиков -->
+    <table id="workScheduleTable">
+        <thead>
+        <tr>
+            <th data-column="id" data-type="number">ID</th>
+            <th data-column="project" data-type="string">Проект</th>
+            <th data-column="name" data-type="string">Название</th>
+            <th data-column="startDate" data-type="date">Дата начала</th>
+            <th data-column="endDate" data-type="date">Дата окончания</th>
+            <th data-column="laborIntensity" data-type="number">Трудоемкость</th>
+            <th data-column="employee" data-type="string">Ответственный</th>
+            <th data-column="status" data-type="string">Статус</th>
+            <th scope="col">Удалить</th>
+            <th scope="col">Редактировать</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="workSchedule: ${listWorkSchedules}">
+            <td th:text="${workSchedule.ID}"></td>
+            <td th:text="${workSchedule.IDProject.ID} + ': ' + ${workSchedule.IDProject.name}"></td>
+            <td th:text="${workSchedule.name}"></td>
+            <td th:text="${workSchedule.startDate}"></td>
+            <td th:text="${workSchedule.endDate}"></td>
+            <td th:text="${workSchedule.laborIntensity}"></td>
+            <td th:text="${workSchedule.employee.fullName}"></td>
+            <td th:text="${workSchedule.status}"></td>
+            <td>
+                <form th:action="@{/project_manager/delete_work_schedule/{id}(id=${workSchedule.ID})}" method="post">
+                    <input type="hidden" name="_method" value="delete"/>
+                    <button type="submit" class="btn btn-custom-delete">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </td>
+            <td>
+                <form th:action="@{/project_manager/edit_work_schedule/{id}(id=${workSchedule.ID})}" th:object="${workSchedule}" method="post">
+                    <button type="button" class="btn-custom-edit" data-bs-toggle="modal" data-bs-target="#editModal"
+                            th:data-id="${workSchedule.ID}"
+                            th:data-project-id="${workSchedule.IDProject.name}"
+                            th:data-name="${workSchedule.name}"
+                            th:data-startDate="${workSchedule.startDate}"
+                            th:data-endDate="${workSchedule.endDate}"
+                            th:data-laborIntensity="${workSchedule.laborIntensity}"
+                            th:data-employee="${workSchedule.employee.ID}"
+                            th:data-status="${workSchedule.status}"
+                            onclick="openEditModal(this)">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Модальное окно для добавления -->
+    <div class="modal fade" id="addWorkScheduleModal" tabindex="-1" aria-labelledby="addWorkScheduleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addWorkScheduleModalLabel">Добавление записи в рабочий график</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addWorkScheduleForm" action="/project_manager/new_work_schedule" method="post">
+                        <div class="mb-3">
+                            <label for="IDProject" class="form-label">Проект</label>
+                            <input type="number" class="form-control" id="IDProject" name="IDProject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Название</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="startDate" class="form-label">Дата начала</label>
+                            <input type="date" class="form-control" id="startDate" name="startDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="endDate" class="form-label">Дата окончания</label>
+                            <input type="date" class="form-control" id="endDate" name="endDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="laborIntensity" class="form-label">Трудоемкость</label>
+                            <input type="number" class="form-control" id="laborIntensity" name="laborIntensity" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="employee" class="form-label">Ответственный</label>
+                            <input type="text" class="form-control" id="employee" name="employee" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Статус</label>
+                            <input type="text" class="form-control" id="status" name="status" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Добавить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для редактирования -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">Редактирование записи рабочего графика</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editForm" method="post" action="/project_manager/edit_work_schedule/{id}">
+                        <input type="hidden" name="_method" value="post">
+                        <input type="hidden" id="id" name="id">
+                        <div class="mb-3">
+                            <label for="IDProject_edit" class="form-label">Проект</label>
+                            <input type="number" class="form-control" id="IDProject_edit" name="IDProject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="name_edit" class="form-label">Название</label>
+                            <input type="text" class="form-control" id="name_edit" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="startDate_edit" class="form-label">Дата начала</label>
+                            <input type="date" class="form-control" id="startDate_edit" name="startDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="endDate_edit" class="form-label">Дата окончания</label>
+                            <input type="date" class="form-control" id="endDate_edit" name="endDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="laborIntensity_edit" class="form-label">Трудоемкость</label>
+                            <input type="number" class="form-control" id="laborIntensity_edit" name="laborIntensity" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="employee_edit" class="form-label">Ответственный</label>
+                            <input type="text" class="form-control" id="employee_edit" name="employee" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="status_edit" class="form-label">Статус</label>
+                            <input type="text" class="form-control" id="status_edit" name="status" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-box">
+        <h2>Информация</h2>
+        <p>Здесь можно редактировать и добавлять записи рабочего графика, а также удалять их.</p>
+        <h5>Контакты техподдержки:</h5>
+        <p>Если у вас возникли вопросы или проблемы, свяжитесь с нами:</p>
+        <p>Email: <a href="mailto:support@example.com">support@example.com</a></p>
+        <p>Телефон: +7 123 456 78 90</p>
+    </div>
+</main>
+</body>
+
+<script>
+    function openEditModal(button) {
+        const workScheduleId = button.getAttribute('data-id');
+        const project = button.getAttribute('data-project-id');
+        const name = button.getAttribute('data-name');
+        const startDate = button.getAttribute('data-startDate');
+        const endDate = button.getAttribute('data-endDate');
+        const laborIntensity = button.getAttribute('data-laborIntensity');
+        const employee = button.getAttribute('data-employee');
+        const status = button.getAttribute('data-status');
+
+        document.getElementById('IDProject_edit').value = project;
+        document.getElementById('name_edit').value = name;
+        document.getElementById('startDate_edit').value = startDate;
+        document.getElementById('endDate_edit').value = endDate;
+        document.getElementById('laborIntensity_edit').value = laborIntensity;
+        document.getElementById('employee_edit').value = employee;
+        document.getElementById('status_edit').value = status;
+
+        const form = document.getElementById('editForm');
+        form.setAttribute('action', `/project_manager/edit_work_schedule/${workScheduleId}`);
+    }
+
+    function openModal() {
+        var modal = new bootstrap.Modal(document.getElementById('addWorkScheduleModal'));
+        modal.show();
+    }
+</script>
+</html>

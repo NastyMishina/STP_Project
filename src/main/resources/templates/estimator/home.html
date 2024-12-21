@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель инженера-сметчика</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            height: 100%;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: whitesmoke
+        }
+        header {
+            width: 950px;
+            color: black;
+            padding: 10px 20px;
+            text-align: right;
+            margin-bottom: 13px;
+        }
+        .logo {
+            position: absolute;
+            top: 20px;
+            left: 10px;
+            width: 200px;
+            height: auto;
+        }
+        .selection {
+            margin-bottom: 20px;
+        }
+        .table-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .table-links button {
+            text-decoration: none;
+            color: #fff;
+            background: #A5D732;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .table-links button:hover {
+            background: #A5D732;
+        }
+        .info-box {
+            padding: 15px;
+            background: #e9ecef;
+            border-left: 5px solid #A5D732;
+            margin-bottom: 20px;
+        }
+        .info-box strong {
+            display: block;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+        footer {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(to right, rgba(165, 215, 50, 1), rgba(207, 216, 220, 1));
+            color: white;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            margin-top: 10px
+        }
+        .green-line {
+            width: 100%;
+            height: 4px;
+            background-color: #A5D732;
+            margin: 0;
+        }
+        canvas {
+            margin: 20px auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <img src="/icons/compIcon.png" alt="Логотип" class="logo">
+    <h3>Панель инженера-сметчика</h3>
+</header>
+<div class="green-line"></div>
+<main>
+    <div class="selection">
+        <h3>Выберите таблицу для работы:</h3>
+        <div class="table-links">
+            <button onclick="window.location.href='/estimator/employee'">Сотрудники</button>
+            <button onclick="window.location.href='/estimator/project'">Проекты</button>
+            <button onclick="window.location.href='/estimator/estimate'">Сметы</button>
+            <button onclick="window.location.href='/estimator/work_schedule'">Графики работ</button>
+        </div>
+    </div>
+    <div class="info-box">
+        <h3>Статистика по проектам</h3>
+        <div class="statistics-container">
+            <p>Общее количество проектов: <span th:text="${totalProjects}"></span></p>
+            <div class="stat-card">
+                <h4>Актуальные проекты</h4>
+                <p>Количество: <span th:text="${activeProjectsCount}"></span></p>
+            </div>
+
+            <div class="stat-card">
+                <h4>Завершенные проекты</h4>
+                <p>Количество: <span th:text="${completedProjectsCount}"></span></p>
+            </div>
+        </div>
+    </div>
+    <canvas id="budgetChart" width="800" height="400"></canvas>
+        <script th:inline="javascript">
+            const projectBudgets = /*[[${projectBudgets}]]*/ [];
+            console.log('Spent Budgets:', projectBudgets);
+
+            const projects = projectBudgets.map(budget => budget.projectName);
+            const budgets = projectBudgets.map(budget => {
+                if (budget.totalBudget === null || isNaN(budget.totalBudget)) {
+                return 0;
+            }
+            return budget.totalBudget;
+            });
+            console.log('Projects:', projects);
+            console.log('Total ', budgets);
+
+            const ctx = document.getElementById('budgetChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: projects,
+                    datasets: [{
+                        label: 'Потраченный бюджет (руб.)',
+                        data: budgets,
+                        backgroundColor: '#A5D732',
+                        borderColor: '#388E3C',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Потраченный бюджет по проектам'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Бюджет (руб.)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Проекты'
+                            }
+                        }
+                    }
+                }
+            });
+        </script>
+</main>
+</body>
+</html>
